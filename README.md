@@ -88,107 +88,89 @@ Common ALU operations included in this design are:
 
 ### ALU Design (`alu_enum.sv`)
 ```systemverilog
-// Write your ALU design code here using
-// - Enumerated Data Types for ALU operations
-// - Case Statements for operation selection
-// ========================================================
-// ALU Design using Enumerated Data Types and Case Statements
-// ========================================================
-
-// Module declaration
-module alu_enum #(parameter WIDTH = 4) (
-    input  logic [WIDTH-1:0] A, B,
-    input  logic <define_operation_enum_here>, // Enumerated operation selector
-    output logic [WIDTH-1:0] ALU_Out,
-    output logic CarryOut
+typedef enum logic [2:0] 
+{
+  ADD = 3'b000,
+  SUB = 3'b001,
+  AND_OP = 3'b010,
+  OR_OP  = 3'b011,
+  XOR_OP = 3'b100,
+  SLT    = 3'b101   // Less Than
+} alu_ops;
+module alu #(  parameter WIDTH = 8)
+(
+  input  		logic [WIDTH-1:0] a, b,
+  input  		alu_ops         op,    // enum operation
+  output 	logic [WIDTH-1:0] result,
+  output 	logic    zero,  // flag: result == 0
+  output 	logic    carry   // carry/borrow flag
 );
 
-    // -----------------------------------------
-    // Define Enumerated Data Type for ALU Ops
-    // -----------------------------------------
-    // typedef enum logic [2:0] {
-    //     ADD = 3'b000,
-    //     SUB = 3'b001,
-    //     AND = 3'b010,
-    //     OR  = 3'b011,
-    //     XOR = 3'b100,
-    //     NOT = 3'b101,
-    //     SHL = 3'b110,
-    //     SHR = 3'b111
-    // } alu_ops_t;
+  logic [WIDTH:0] temp; // to capture carry
 
-    // -----------------------------------------
-    // Internal signals
-    // -----------------------------------------
-    // logic [WIDTH:0] tmp;
+  always_comb 
+begin
+    temp   = '0;
+    result = '0;
+    carry  = 1'b0;
+case (op)
+      ADD: begin
+        temp   = a + b;
+        result = temp[WIDTH-1:0];
+        carry  = temp[WIDTH];
+      end
 
-    // -----------------------------------------
-    // ALU operation using case statement
-    // -----------------------------------------
-    always_comb begin
-        // case (operation)
-        //     ADD: tmp = A + B;
-        //     SUB: tmp = A - B;
-        //     AND: tmp = A & B;
-        //     ...
-        //     default: tmp = 0;
-        // endcase
-    end
+      SUB: begin
+        temp   = a - b;
+        result = temp[WIDTH-1:0];
+        carry  = temp[WIDTH];  // borrow out
+      end
 
-    // assign ALU_Out = tmp[WIDTH-1:0];
-    // assign CarryOut = tmp[WIDTH];
+      AND_OP: result = a & b;
+      OR_OP : result = a | b;
+      XOR_OP: result = a ^ b;
+      SLT   : result = (a < b) ? 1 : 0;
 
+      default: result = '0;
+    endcase
+  end
+assign zero = (result == 0);
 endmodule
 ```
 ---
 
 ### ALU Testbench (`alu_tb.sv`)
 ```systemverilog
+module tb_alu;
+  parameter WIDTH = 8;
+  logic [WIDTH-1:0] a, b;
+  alu_ops        op;
+  logic [WIDTH-1:0] result;
+  logic zero, carry;
 
-// Write your ALU testbench code here
-// ========================================================
-// Testbench for ALU using Enumerated Data Types
-// ========================================================
+  // DUT
+  alu #(WIDTH) dut (    .a(a), .b(b), .op(op), .result(result), .zero(zero), .carry(carry)  );
+initial begin
+    $display("Time\t A\t B\t Operation\t Result\t Carry\t Zero");
+    $monitor("%0t\t %0d\t %0d\t %p\t %0d\t %b\t %b", $time, a, b, op, result, carry, zero);
 
-module alu_enum_tb;
+    a = 8'd10; b = 8'd5;
 
-    // -----------------------------------------
-    // Testbench signals
-    // -----------------------------------------
-    logic [3:0] A, B;
-    logic <define_operation_enum_here>;   // Enumerated operation selector
-    logic [3:0] ALU_Out;
-    logic CarryOut;
+    op = ADD;   #10;
+    op = SUB;   #10;
+    op = AND_OP;#10;
+    op = OR_OP; #10;
+    op = XOR_OP;#10;
+    op = SLT;   #10;
 
-    // -----------------------------------------
-    // Instantiate ALU
-    // -----------------------------------------
-    alu_enum #(4) uut (
-        .A(A),
-        .B(B),
-        .operation(<enum_signal>),
-        .ALU_Out(ALU_Out),
-        .CarryOut(CarryOut)
-    );
-
-    // -----------------------------------------
-    // Apply test vectors
-    // -----------------------------------------
-    initial begin
-        // Example:
-        // A = 4'b0011; B = 4'b0001; operation = ADD; #10;
-        // A = 4'b0100; B = 4'b0001; operation = SUB; #10;
-        // ...
-        $stop; // End of simulation
-    end
-
+    $finish;
+  end
 endmodule
+
 ```
 ### Simulation Output
+![WhatsApp Image 2025-09-16 at 09 04 00_bc19a0ce](https://github.com/user-attachments/assets/c4964fc2-f363-4014-8494-b26c2d726920)
 
-The simulation is carried out using ModelSim 2020.1.
-
-(Insert waveform screenshot here after running simulation in ModelSim)
 
 ### Result
 
